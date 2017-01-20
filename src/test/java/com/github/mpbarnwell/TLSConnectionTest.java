@@ -100,11 +100,18 @@ public class TLSConnectionTest {
 
     @Test
     public void checkWorkingCiphers() throws Throwable {
+        output.println("=== Testing Java version "
+                + System.getProperty("java.vendor")
+                + " "
+                + System.getProperty("java.version")
+                + " ===");
+        output.println();
+
         TLSSocketFactory socketFactory = new TLSSocketFactory(ca);
 
         ciphers.forEach(cipher -> {
             socketFactory.setCipher(cipher);
-            output.print("Testing " + cipher + "... ");
+            output.print(cipher + "... ");
             try {
                 MQTTConnect mqttConnect = new MQTTConnect(endpoint, socketFactory);
                 fail("Expected exception");
@@ -112,8 +119,10 @@ public class TLSConnectionTest {
                 if ("Received fatal alert: bad_certificate".equals(e.getMessage())) {
                     // This is what we expect when authentication is rejected
                     output.println("Success!");
+                } else if ("Received fatal alert: handshake_failure".equals(e.getMessage())) {
+                    output.println("Failed: Cipher unsupported by server");
                 } else {
-                    output.println("Failed: " + e.getLocalizedMessage());
+                    output.println("Failed (" + e.getClass().getSimpleName() + "): " + e.getMessage());
                 }
             }
         });
