@@ -2,10 +2,8 @@ package com.github.mpbarnwell;
 
 import com.github.mpbarnwell.tlstest.MQTTConnect;
 import com.github.mpbarnwell.tlstest.TLSSocketFactory;
-import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
-import javax.net.ssl.SSLHandshakeException;
 import java.io.File;
 import java.io.PrintStream;
 import java.net.URL;
@@ -14,18 +12,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class TLSConnectionTest {
 
-    private final String endpoint = "ssl://AU020DOFPRI0E.iot.eu-west-1.amazonaws.com:8883";
+    private final String host = "AU020DOFPRI0E.iot.eu-west-1.amazonaws.com";
+    private final int port = 8883;
     private final PrintStream output = System.out;
     private final Path ca;
 
     // Officially supported ciphers at http://docs.aws.amazon.com/iot/latest/developerguide/iot-security-identity.html
-    private final List<String> ciphers = ImmutableList.of(
+    private final List<String> ciphers = Arrays.asList(
             "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
             "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
             "TLS_RSA_WITH_AES_256_CBC_SHA256",
@@ -113,7 +111,7 @@ public class TLSConnectionTest {
             socketFactory.setCipher(cipher);
             output.print(cipher + "... ");
             try {
-                MQTTConnect mqttConnect = new MQTTConnect(endpoint, socketFactory);
+                MQTTConnect mqttConnect = new MQTTConnect(host, port, socketFactory);
                 fail("Expected exception");
             } catch (Throwable e) {
                 if ("Received fatal alert: bad_certificate".equals(e.getMessage())) {
