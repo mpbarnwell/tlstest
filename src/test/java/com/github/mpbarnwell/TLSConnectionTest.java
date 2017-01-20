@@ -2,6 +2,7 @@ package com.github.mpbarnwell;
 
 import com.github.mpbarnwell.tlstest.MQTTConnect;
 import com.github.mpbarnwell.tlstest.TLSSocketFactory;
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -22,6 +23,58 @@ public class TLSConnectionTest {
     private final String endpoint = "ssl://AU020DOFPRI0E.iot.eu-west-1.amazonaws.com:8883";
     private final PrintStream output = System.out;
     private final Path ca;
+
+    // Officially supported ciphers at http://docs.aws.amazon.com/iot/latest/developerguide/iot-security-identity.html
+    private final List<String> ciphers = ImmutableList.of(
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+            "TLS_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+            "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
+            "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
+            "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA");
 
     public TLSConnectionTest() throws Exception {
         URL caCrt = this.getClass().getResource("/VeriSign-Class 3-Public-Primary-Certification-Authority-G5.pem");
@@ -48,13 +101,22 @@ public class TLSConnectionTest {
     @Test
     public void checkWorkingCiphers() throws Throwable {
         TLSSocketFactory socketFactory = new TLSSocketFactory(ca);
-        try {
-            MQTTConnect mqttConnect = new MQTTConnect(endpoint, socketFactory);
-            fail("Expected exception");
-        } catch (SSLHandshakeException e) {
-            // This is what we expect when authentication is rejected
-            assertEquals("Received fatal alert: bad_certificate", e.getMessage());
-        }
+
+        ciphers.forEach(cipher -> {
+            socketFactory.setCipher(cipher);
+            output.print("Testing " + cipher + "... ");
+            try {
+                MQTTConnect mqttConnect = new MQTTConnect(endpoint, socketFactory);
+                fail("Expected exception");
+            } catch (Throwable e) {
+                if ("Received fatal alert: bad_certificate".equals(e.getMessage())) {
+                    // This is what we expect when authentication is rejected
+                    output.println("Success!");
+                } else {
+                    output.println("Failed: " + e.getLocalizedMessage());
+                }
+            }
+        });
     }
 
 

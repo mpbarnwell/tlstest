@@ -24,6 +24,8 @@ public class TLSSocketFactory extends SSLSocketFactory {
 
     private final SSLSocketFactory sslSocketFactory;
 
+    private String cipher = null;
+
     public TLSSocketFactory(Path ca) throws
             IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException,
             KeyManagementException, UnrecoverableEntryException {
@@ -53,6 +55,10 @@ public class TLSSocketFactory extends SSLSocketFactory {
         context.init(null, tmf.getTrustManagers(), null);
 
         this.sslSocketFactory = context.getSocketFactory();
+    }
+
+    public void setCipher(String cipher) {
+        this.cipher = cipher;
     }
 
     @Override
@@ -113,6 +119,10 @@ public class TLSSocketFactory extends SSLSocketFactory {
             SSLParameters sslParams = new SSLParameters();
             sslParams.setEndpointIdentificationAlgorithm("HTTPS");
             ((SSLSocket) socket).setSSLParameters(sslParams);
+
+            if (cipher != null) {
+                ((SSLSocket) socket).setEnabledCipherSuites(new String[] { cipher });
+            }
         }
         return socket;
     }
